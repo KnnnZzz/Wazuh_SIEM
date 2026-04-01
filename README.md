@@ -1,6 +1,6 @@
 # 🛡️ Wazuh SIEM — Enterprise Configuration
 
-> A production-ready Wazuh SIEM deployment featuring threat intelligence integrations (VirusTotal & MISP), network device monitoring (OPNsense & MikroTik), custom decoders and rules, automated active responses, and a Dockerized syslog collector architecture.
+> A production-ready Wazuh SIEM deployment featuring threat intelligence integrations (VirusTotal & MISP), network device monitoring (OPNsense & MikroTik), custom decoders and rules, automated active responses, Telegram SOC notifications, and a Dockerized syslog collector architecture.
 
 ---
 
@@ -37,6 +37,7 @@ This repository contains the full configuration set for a **Wazuh SIEM** deploym
 | **Firewall Monitoring** | Real-time ingestion and alerting on OPNsense filterlog and Suricata events |
 | **Router Auditing** | Comprehensive MikroTik RouterOS auditing (login, firewall, DNS, scripts, schedulers) |
 | **Active Response** | Automated threat removal, IP blocking on OPNsense, and firewall-drop actions |
+| **SOC Notifications** | Real-time Telegram alerts with MikroTik-aware formatting for instant SOC visibility |
 | **File Integrity Monitoring (FIM)** | Syscheck across Linux and Windows endpoints with real-time monitoring |
 | **Vulnerability Detection** | Native Wazuh vulnerability detection with 60-minute feed updates |
 | **Compliance** | Rules tagged with MITRE ATT&CK, PCI DSS, and GDPR mappings |
@@ -83,6 +84,7 @@ This repository contains the full configuration set for a **Wazuh SIEM** deploym
 ```
 Wazuh_SIEM/
 ├── ossec.conf                          # Main Wazuh Manager configuration
+├── Dashboards.ndjson                   # Wazuh/OpenSearch dashboard export (importable)
 ├── README.md
 │
 ├── Agents/                             # Per-group agent.conf files (shared_agent_config)
@@ -103,6 +105,9 @@ Wazuh_SIEM/
 │       ├── misp.xml                    # MISP generic rules (100620–100622)
 │       └── misp_files_hashes.xml       # MISP file-hash rules (100800–100805)
 │
+├── Telegram/                           # Telegram SOC notification integration
+│   └── custom-telegram                 # Bash script — context-aware alert notifications
+│
 ├── OPNSense/                           # OPNsense firewall integration
 │   ├── Decoders/OPNsense_decoder.xml   # Filterlog decoder (pcre2)
 │   ├── Rules/OPNsense_rule.xml         # Firewall rules (100900–100912)
@@ -115,12 +120,10 @@ Wazuh_SIEM/
 │   ├── Rules/
 │   │   ├── MikroTik.xml                # v2 rules: login fail/success, brute-force (110011–110013)
 │   │   └── mikrotik-rules.xml          # Docker collector rules: full audit (101000–101023)
-│   └── docker/wazuh-collector/         # (symlink to docker/ — see below)
-│
-├── docker/wazuh-collector/             # Dockerized syslog collector for MikroTik
-│   ├── docker-compose.yml              # Docker Compose with socat UDP listener
-│   ├── ossec.conf                      # Minimal agent config for the container
-│   └── logs_mikrotik/                  # Persistent volume for MikroTik logs
+│   └── docker/wazuh-collector/         # Dockerized syslog collector for MikroTik
+│       ├── docker-compose.yml          # Docker Compose with socat UDP listener
+│       ├── ossec.conf                  # Minimal agent config for the container
+│       └── logs_mikrotik/              # Persistent volume for MikroTik logs
 │
 └── local/                              # Wazuh local custom decoders & rules
     ├── Decoders/local_decoder.xml      # Squid proxy & DNS decoders
@@ -256,7 +259,15 @@ The custom MISP script (`custom-misp_file_hashes.py`) extracts indicators from m
 
 ### Telegram Notifications
 
-High-severity alerts (level ≥ 12) are forwarded to a Telegram bot via a custom integration.
+**Purpose:** Send real-time, context-aware alert notifications to a Telegram channel/group for instant SOC visibility.
+
+| Setting | Value |
+|---------|-------|
+| Trigger | All alerts ≥ level 12 |
+| Alert Format | JSON |
+| Script | `Telegram/custom-telegram` |
+
+#### ossec.conf Configuration
 
 ```xml
 <integration>
@@ -267,7 +278,47 @@ High-severity alerts (level ≥ 12) are forwarded to a Telegram bot via a custom
 </integration>
 ```
 
-> **Note:** The `hook_url` should be updated with your actual Telegram Bot API endpoint.
+> **Note:** The `hook_url` field is unused by the script (credentials are inside the script itself). Set your `TOKEN` and `CHAT_ID` directly in the `custom-telegram` script.
+
+#### File
+
+| File | Location on Manager | Description |
+|------|---------------------|-------------|
+| `custom-telegram` | `/var/ossec/integrations/custom-telegram` | Bash script — parses alert JSON and sends formatted HTML messages via Telegram Bot API |
+
+#### How It Works
+
+The script uses **two notification modes** based on the alert's rule group:
+
+**🚨 MikroTik Mode** — When the alert belongs to the `mikrotik` group:
+```
+🚨 MIKROTIK ALERT 🚨
+Level: 15
+Threat: MikroTik log: Brute-force attack detected from IP 10.0.0.100
+User: admin
+Source IP: 10.0.0.100
+Target (User/Rule): admin1
+Method: winbox
+🛡️
+```
+Extracts MikroTik-specific fields: `admin_user`, `target_user`, `srcaddr`, `method`.
+
+**⚠️ Generic Mode** — For all other high-severity alerts:
+```
+⚠️ WAZUH SOC ALERT ⚠️
+Level: 15
+Agent: web-server-01
+Threat: MISP Threat Intel: Confirmed Detection - Threat found on the system!
+Source IP: 10.0.0.50
+🛡️
+```
+Extracts standard fields: `agent.name`, `rule.description`, `data.srcip`.
+
+#### Key Features
+- **Context-aware formatting** — Automatically detects MikroTik alerts and renders router-specific fields
+- **HTML parsing** — Uses Telegram's HTML mode for bold labels and clean formatting
+- **Null-safe extraction** — All `jq` calls use `// empty` fallback to prevent crashes on missing fields
+- **Minimal dependencies** — Only requires `bash`, `jq`, and `curl`
 
 ---
 
@@ -520,6 +571,11 @@ docker-compose up -d
    cp MISP/custom-misp_file_hashes.py /var/ossec/integrations/
    chmod 750 /var/ossec/integrations/custom-misp_file_hashes.py
    chown root:wazuh /var/ossec/integrations/custom-misp_file_hashes.py
+
+   # Telegram
+   cp Telegram/custom-telegram /var/ossec/integrations/custom-telegram
+   chmod 750 /var/ossec/integrations/custom-telegram
+   chown root:wazuh /var/ossec/integrations/custom-telegram
    ```
 
 4. **Active Responses**
@@ -566,6 +622,7 @@ docker-compose up -d
 | VirusTotal API Key | `ossec.conf` | Replace with environment variable or vault reference |
 | MISP API Key | `ossec.conf` | Replace with environment variable or vault reference |
 | OPNsense API Key/Secret | `opnsense-block.sh` | Replace with environment variable or vault reference |
+| Telegram Bot Token | `custom-telegram` | Replace `YOUR_TOKEN` and `YOUR_CHAT_ID` with your actual values |
 | Wazuh Registration Password | `docker-compose.yml` | Replace with environment variable |
 | Internal IP Addresses | Multiple files | Review and generalize if needed |
 | SSL Certificates | `ossec.conf` (indexer section) | Ensure paths are correct for your environment |
@@ -582,5 +639,5 @@ This project is provided as-is for educational and professional use.
 ---
 
 <p align="center">
-  <i>Built with 🛡️ Wazuh · 🔍 VirusTotal · 🧬 MISP · 🔥 OPNsense · 📡 MikroTik</i>
+  <i>Built with 🛡️ Wazuh · 🔍 VirusTotal · 🧬 MISP · 🔥 OPNsense · 📡 MikroTik · 📲 Telegram</i>
 </p>

@@ -1,0 +1,78 @@
+#!/bin/bash
+
+# 1. Wazuh passes the alert file as the first argument ($1)
+ALERT_FILE=$1
+
+# 2. Telegram Bot credentials
+TOKEN="YOUR_TOKEN"
+CHAT_ID="YOUR_CHAT_ID"
+
+# 3. Read the alert JSON file
+ALERT_JSON=$(cat $ALERT_FILE)
+
+# 1. Base field extraction
+DESCRIPTION=$(echo "$ALERT_JSON" | jq -r '.rule.description // "No description"')
+LEVEL=$(echo "$ALERT_JSON" | jq -r '.rule.level // "0"')
+AGENT_NAME=$(echo "$ALERT_JSON" | jq -r '.agent.name // "Wazuh Server"')
+
+# 2. Check if the alert belongs to the MikroTik group
+IS_MIKROTIK=$(echo "$ALERT_JSON" | jq -r 'if (.rule.groups != null and (.rule.groups | index("mikrotik"))) then "yes" else "no" end')
+
+if [ "$IS_MIKROTIK" = "yes" ]; then
+    
+    # --- MIKROTIK MODE ---
+    # Extract admin_user OR username (depends on which rule triggered)
+    ADMIN_USER=$(echo "$ALERT_JSON" | jq -r '.data.admin_user // .data.username // empty')
+    TARGET_USER=$(echo "$ALERT_JSON" | jq -r '.data.target_user // empty')
+    SRCADDR=$(echo "$ALERT_JSON" | jq -r '.data.srcaddr // empty')
+    METHOD=$(echo "$ALERT_JSON" | jq -r '.data.method // empty')
+
+    [ -z "$ADMIN_USER" ] && ADMIN_USER="Unknown"
+    [ -z "$SRCADDR" ] && SRCADDR="Unknown"
+
+    # Build the message with real line breaks (do not change the spacing of these lines!)
+    MESSAGE="🚨 <b>MIKROTIK ALERT</b> 🚨
+
+<b>Level:</b> $LEVEL
+<b>Threat:</b> $DESCRIPTION
+<b>User:</b> $ADMIN_USER
+<b>Source IP:</b> $SRCADDR"
+
+    if [ -n "$TARGET_USER" ]; then
+        MESSAGE="${MESSAGE}
+<b>Target (User/Rule):</b> $TARGET_USER"
+    fi
+
+    if [ -n "$METHOD" ]; then
+        MESSAGE="${MESSAGE}
+<b>Method:</b> $METHOD"
+    fi
+
+else
+
+    # --- GENERIC MODE ---
+    GENERIC_IP=$(echo "$ALERT_JSON" | jq -r '.data.srcip // empty')
+
+    MESSAGE="⚠️ <b>WAZUH SOC ALERT</b> ⚠️
+
+<b>Level:</b> $LEVEL
+<b>Agent:</b> $AGENT_NAME
+<b>Threat:</b> $DESCRIPTION"
+
+    if [ -n "$GENERIC_IP" ]; then
+        MESSAGE="${MESSAGE}
+<b>Source IP:</b> $GENERIC_IP"
+    fi
+
+fi
+
+# Final footer
+MESSAGE="${MESSAGE}
+
+🛡️"
+
+# 3. Send notification via Telegram Bot API
+curl -X POST "https://api.telegram.org/bot$TOKEN/sendMessage" \
+     -d chat_id="$CHAT_ID" \
+     --data-urlencode text="$MESSAGE" \
+     -d parse_mode="HTML"
