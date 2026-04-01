@@ -1,0 +1,18 @@
+# Backup files
+*.bak
+
+# Log data (may contain real IPs/events)
+*.log
+**/logs_mikrotik/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/

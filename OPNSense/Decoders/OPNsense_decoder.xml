@@ -1,0 +1,9 @@
+<decoder name="opnsense-custom">
+    <prematch>filterlog</prematch>
+</decoder>
+
+<decoder name="opnsense-fields">
+    <parent>opnsense-custom</parent>
+    <regex type="pcre2">filterlog.*?\s+\d+,[^,]*,[^,]*,([^,]+),[^,]*,[^,]*,([^,]+),[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,([^,]+),[^,]*,([^,]+),([^,]+),([^,]+),([^,]+)</regex>
+    <order>tracker, action, protocol, srcip, dstip, srcport, dstport</order>
+</decoder>

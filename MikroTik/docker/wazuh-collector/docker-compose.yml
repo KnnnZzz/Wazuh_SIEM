@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  wazuh-agent:
+    image: wazuh/wazuh-agent:4.14.3
+    container_name: wazuh-agent-server-A
+    hostname: Collector_server_A
+    restart: always
+    user: root
+    entrypoint: >
+      /bin/bash -c "
+      yum install socat -y &&
+      mkdir -p /var/log/mikrotik &&
+      touch /var/log/mikrotik/mikrotik.log &&
+      chown -R wazuh:wazuh /var/log/mikrotik &&
+      chmod 664 /var/log/mikrotik/mikrotik.log &&
+      socat UDP4-RECVFROM:514,fork,reuseaddr SYSTEM:'echo -n \"$$SOCAT_PEERADDR,\" >> /var/log/mikrotik/mikrotik.log && cat >> /var/log/mikrotik/mikrotik.log && echo >> /var/log/mikrotik/mikrotik.log' &
+      exec /init"
+    environment:
+      - WAZUH_MANAGER=WAZUH_MANAGER_IP
+      - WAZUH_REGISTRATION_PASSWORD=YOUR_REGISTRATION_PASSWORD
+      - WAZUH_AGENT_GROUP=server-A
+    volumes:
+      - ./ossec.conf:/var/ossec/etc/ossec.conf:ro
+      - ./logs_mikrotik:/var/log/mikrotik
+    ports:
+      - "514:514/udp"

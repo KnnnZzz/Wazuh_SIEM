@@ -1,0 +1,28 @@
+<group name="mikrotik, auditing,">
+
+  <rule id="110011" level="12" overwrite="yes">
+    <if_sid>2501</if_sid>
+    <decoded_as>mikrotik-v2</decoded_as>
+    <match>login failure</match>
+    <description>MikroTik log: Login failure for user $(dstuser) from $(srcip)</description>
+    <group>authentication_failed,</group>
+  </rule>
+
+  <rule id="110012" level="3">
+    <decoded_as>mikrotik-v2</decoded_as>
+    <match>logged in</match>
+    <description>MikroTik log: User $(dstuser) logged in from $(srcip)</description>
+    <group>authentication_success,</group>
+  </rule>
+  
+  <rule id="110013" level="15" frequency="5" timeframe="120">
+    <if_matched_sid>110011</if_matched_sid>
+    <same_source_ip />
+    <description>MikroTik log: Brute-force attack detected from IP $(srcip)</description>
+    <mitre>
+      <id>T1110</id>
+    </mitre>
+    <group>authentication_failures,pci_dss_11.4,pci_dss_10.2.4,gdpr_IV_35.7.d,</group>
+  </rule>
+  
+</group>

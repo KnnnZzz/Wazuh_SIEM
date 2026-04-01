@@ -1,0 +1,164 @@
+<decoder name="mikrotik-collector">
+    <prematch type="pcre2">^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3},[a-zA-Z0-9\-]+,[a-zA-Z0-9\-]+,</prematch>
+</decoder>
+
+<decoder name="mikrotik-identity-change">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">system identity changed by</prematch>
+    <regex type="pcre2">^([^,]+),.*system identity changed by\s+(.+):([^:@]+)@([^\s\)]+)\s+\(/system identity set name="?([^"]+)"?\)</regex>
+    <order>router_ip, method, admin_user, srcaddr, new_identity</order>
+</decoder>
+
+<decoder name="mikrotik-time-change">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">change time</prematch>
+    <regex type="pcre2">^([^,]+),.*change time\s+(.+?)\s+=>\s+(.+)$</regex>
+    <order>router_ip, old_time, new_time</order>
+</decoder>
+
+<decoder name="mikrotik-timezone-change">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">system time zone settings changed by</prematch>
+    <regex type="pcre2">^([^,]+),.*system time zone settings changed by\s+(.+):(\S+)@(\S+).*time-zone-name=([^;\s\)]+)</regex>
+    <order>router_ip, method, admin_user, srcaddr, time_zone</order>
+</decoder>
+
+<decoder name="mikrotik-ppp-login">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">logged in,</prematch>
+    <regex type="pcre2">^([^,]+),.*(\S+)\s+logged in,\s+([0-9a-fA-F:.]+)\s+from\s+([0-9a-fA-F:.]+)$</regex>
+    <order>router_ip, username, localip, srcaddr</order>
+</decoder>
+
+<decoder name="mikrotik-ppp-auth-failed">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">authentication failed</prematch>
+    <regex type="pcre2">^([^,]+),.*(\S+):\s*user\s+(.+?)\s+authentication\s+failed$</regex>
+    <order>router_ip, srcaddr, username</order>
+</decoder>
+
+<decoder name="mikrotik-ppp-logout">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">logged out,</prematch>
+    <regex type="pcre2">^([^,]+),.*(\S+)\s+logged out,.*from\s*(.*)$</regex>
+    <order>router_ip, username, srcaddr</order>
+</decoder>
+
+<decoder name="mikrotik-failed-user-login">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">login failure</prematch>
+    <regex type="pcre2">^([^,]+),.*login failure for user (\S+) from (\S+) via (\S+)</regex>
+    <order>router_ip, username, srcaddr, method</order>
+</decoder>
+
+<decoder name="mikrotik-successful-user-login">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">logged in from</prematch>
+    <regex type="pcre2">^([^,]+),.*user (\S+) logged in from (\S+) via (\S+)</regex>
+    <order>router_ip, admin_user, srcaddr, method</order>
+</decoder>
+
+<decoder name="mikrotik-user-logout">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">logged out from</prematch>
+    <regex type="pcre2">^([^,]+),.*user (\S+) logged out from (\S+) via (\S+)</regex>
+    <order>router_ip, admin_user, srcaddr, method</order>
+</decoder>
+
+<decoder name="mikrotik-user-modify">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">user\s+\S+\s+(?:added|changed|removed)\s+by</prematch>
+    <regex type="pcre2">^([^,]+),.*user\s+(\S+)\s+(added|changed|removed)\s+by\s+([^:]+):([^@]+)@([^\s\(]+)</regex>
+    <order>router_ip, target_user, action, method, admin_user, srcaddr</order>
+</decoder>
+
+<decoder name="mikrotik-user-password-change">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">user\s+\S+\s+password\s+changed</prematch>
+    <regex type="pcre2">^([^,]+),.*user\s+(\S+)\s+password\s+changed\s+by\s+(\S+)</regex>
+    <order>router_ip, target_user, admin_user</order>
+</decoder>
+
+<decoder name="mikrotik-ipv4-filter-rule-modify">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">filter rule\s+(added|changed)\s+by</prematch>
+    <regex type="pcre2">^([^,]+),.*filter rule\s+(added|changed)\s+by\s+(.+):([^\s@]+)@([0-9\.]+).*?\(.*?(?:action=([a-zA-Z\-]+))?.*?(?:chain=([a-zA-Z]+))?</regex>
+    <order>router_ip, event_action, method, admin_user, srcaddr, fw_action, chain</order>
+</decoder>
+
+<decoder name="mikrotik-ipv4-filter-rule-removed">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">filter rule\s+removed\s+by</prematch>
+    <regex type="pcre2">^([^,]+),.*filter rule\s+removed\s+by\s+(.+):([^\s@]+)@([0-9\.]+)</regex>
+    <order>router_ip, method, admin_user, srcaddr</order>
+</decoder>
+
+<decoder name="mikrotik-ipv6-filter-rule-modify">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">filter6 rule\s+(added|changed)\s+by</prematch>
+    <regex type="pcre2">^([^,]+),.*filter6 rule\s+(added|changed)\s+by\s+(.+):([^\s@]+)@([0-9\.]+).*?\(.*?(?:action=([a-zA-Z\-]+))?.*?(?:chain=([a-zA-Z]+))?</regex>
+    <order>router_ip, event_action, method, admin_user, srcaddr, fw_action, chain</order>
+</decoder>
+
+<decoder name="mikrotik-ipv6-filter-rule-removed">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">filter6 rule\s+removed\s+by</prematch>
+    <regex type="pcre2">^([^,]+),.*filter6 rule\s+removed\s+by\s+(.+):([^\s@]+)@([0-9\.]+)</regex>
+    <order>router_ip, method, admin_user, srcaddr</order>
+</decoder>
+
+<decoder name="mikrotik-ip-service-change">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">ip service changed by</prematch>
+    <regex type="pcre2">^([^,]+),.*ip service changed by\s+(.+):([^\s@]+)@([0-9\.]+).*?\(/ip service set\s+(\S+)</regex>
+    <order>router_ip, method, admin_user, srcaddr, changed_service</order>
+</decoder>
+
+<decoder name="mikrotik-dns-change-cli">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">dns changed by\s+(ssh|local|api):</prematch>
+    <regex type="pcre2">^([^,]+),.*dns changed by\s+(ssh|local|api):([^@:]+)@([0-9a-fA-F:.]+)\s+\((?:.*?allow-remote-requests=(yes|no))?(?:.*?servers=([^ )]+))?(?:.*?use-doh-server=([^ )]+))?.*?\)$</regex>
+    <order>router_ip, method, admin_user, srcaddr, allow_remote_requests, dns_servers, doh_server</order>
+</decoder>
+
+<decoder name="mikrotik-dns-change-web-winbox">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">dns changed by\s+(?!(ssh|local|api):)</prematch>
+    <regex type="pcre2">^([^,]+),.*dns changed by\s+(.+?):([^@:]+)@([0-9a-fA-F:.]+)\s+\(.*?allow-remote-requests=(yes|no)(?:.*?servers=([^ )]*))?(?:.*?use-doh-server="?([^") ]*)"?).*?\)$</regex>
+    <order>router_ip, method, admin_user, srcaddr, allow_remote_requests, dns_servers, doh_server</order>
+</decoder>
+
+<decoder name="mikrotik-script-add-cli">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">new script added by\s+(ssh|local|api):</prematch>
+    <regex type="pcre2">^([^,]+),.*new script added by\s+(ssh|local|api):([^@]+)@([^\s\)]+)\s+\(.*?/system script add(?:.*?name=(?:"([^"]+)"|([^\s]+)))?(?:.*?source="([\s\S]*?)")?.*?\)$</regex>
+    <order>router_ip, method, admin_user, srcaddr, script_name, script_name, source_code</order>
+</decoder>
+
+<decoder name="mikrotik-script-add-web-winbox">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">new script added by</prematch>
+    <regex type="pcre2">^([^,]+),.*new script added by\s+(.+?):([^@:]+)@([0-9a-fA-F:.]+)\s+\(.*?/system script add.*?(?:name=("[^"]+"|\S+)).*?source="([\s\S]*?)"\)$</regex>
+    <order>router_ip, method, admin_user, srcaddr, script_name, source_code</order>
+</decoder>
+
+<decoder name="mikrotik-scheduler-add-cli">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">new script scheduled by\s+(ssh|local|api):</prematch>
+    <regex type="pcre2">^([^,]+),.*new script scheduled by\s+(ssh|local|api):([^@]+)@([^\s\)]+).*?/system scheduler add.*?name=(?:"([^"]+)"|([^\s]+)).*?on-event="([^"]*)"(?:.*?start-date=([0-9\-]+))?(?:.*?start-date=([0-9:]+))?</regex>
+    <order>router_ip, method, admin_user, srcaddr, name, name, script_code, start_date, start_time</order>
+</decoder>
+
+<decoder name="mikrotik-scheduler-add-web-winbox">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">new script scheduled by\s+(?!ssh:|local:|api:)</prematch>
+    <regex type="pcre2">^([^,]+),.*new script scheduled by\s+(.+?):([^@]+)@([^\s\)]+).*?/system scheduler add.*?disabled=(yes|no).*?name=(?:"([^"]+)"|([^\s]+)).*?on-event="([^"]*)".*?start-date=([0-9\-]+).*?start-time=([0-9:]+)</regex>
+    <order>router_ip, method, admin_user, srcaddr, disabled, name, name, script_code, start_date, start_time</order>
+</decoder>
+
+<decoder name="mikrotik-ppp-secret-add">
+    <parent>mikrotik-collector</parent>
+    <prematch type="pcre2">ppp secret\s+</prematch>
+    <regex type="pcre2">^([^,]+),.*ppp secret (.*?) added by\s+([^:]+(?::[^:]+)?):([^@]+)@([^\s]+)</regex>
+    <order>router_ip, ppp_user, method, admin_user, srcaddr</order>
+</decoder>

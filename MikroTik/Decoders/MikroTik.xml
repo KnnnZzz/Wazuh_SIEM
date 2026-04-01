@@ -1,0 +1,15 @@
+<decoder name="mikrotik-v2">
+  <prematch>MikroTik::</prematch>
+</decoder>
+
+<decoder name="mikrotik-v2-login-fail">
+  <parent>mikrotik-v2</parent>
+  <regex type="pcre2">login failure for user (\S+) from (\S+) via (\S+)</regex>
+  <order>dstuser, srcip, protocol</order>
+</decoder>
+
+<decoder name="mikrotik-v2-login-success">
+  <parent>mikrotik-v2</parent>
+  <regex type="pcre2">user (\S+) logged in from (\S+) via (\S+)</regex>
+  <order>dstuser, srcip, protocol</order>
+</decoder>

@@ -1,0 +1,42 @@
+<!-- Local Decoders -->
+
+<!-- Modify it at your will. -->
+<!-- Copyright (C) 2015, Wazuh Inc. -->
+
+<!--
+  - Allowed static fields:
+  - location   - where the log came from (only on FTS)
+  - srcuser    - extracts the source username
+  - dstuser    - extracts the destination (target) username
+  - user       - an alias to dstuser (only one of the two can be used)
+  - srcip      - source ip
+  - dstip      - dst ip
+  - srcport    - source port
+  - dstport    - destination port
+  - protocol   - protocol
+  - id         - event id
+  - url        - url of the event
+  - action     - event action (deny, drop, accept, etc)
+  - status     - event status (success, failure, etc)
+  - extra_data - Any extra data
+-->
+
+<decoder name="custom_squid">
+  <program_name>^squid</program_name>
+</decoder>
+
+<decoder name="custom_squid_domain">
+  <parent>custom_squid</parent>
+  <regex type="pcre2">GET\s+https?:\/\/([^\/]+)</regex>
+  <order>domain</order>
+</decoder>
+
+<decoder name="custom-dns">
+  <program_name>^custom-dns</program_name>
+</decoder>
+
+<decoder name="custom-dns-domain">
+  <parent>custom-dns</parent>
+  <regex>query for domain (\S+)</regex>
+  <order>domain</order>
+</decoder>

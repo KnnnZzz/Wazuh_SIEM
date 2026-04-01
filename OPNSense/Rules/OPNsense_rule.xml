@@ -1,0 +1,60 @@
+<group name="opnsense, custom_mssp,">
+
+    <rule id="100900" level="0">
+        <decoded_as>opnsense-custom</decoded_as>
+        <description>OPNsense: Base grouping rule.</description>
+    </rule>
+
+    <rule id="100901" level="0">
+        <if_sid>100900</if_sid>
+        <action>pass</action>
+        <options>no_full_log</options>
+        <description>OPNsense: Traffic Allowed.</description>
+    </rule>
+ 
+    <rule id="100902" level="0">
+        <if_sid>100900</if_sid>
+        <action>block</action>
+        <options>no_full_log</options>
+        <description>OPNsense: Traffic Blocked.</description>
+    </rule>
+
+    <rule id="100910" level="0">
+        <if_sid>100902</if_sid>
+        <match>\.255</match>
+        <description>OPNsense: Suppress false positive (Broadcast Drop).</description>
+    </rule>
+
+    <rule id="100911" level="0">
+        <if_sid>100902</if_sid>
+        <match>ff02::</match>
+        <description>OPNsense: Suppress false positive (Multicast/IPv6 Drop).</description>
+    </rule>
+
+    <rule id="100912" level="0">
+        <if_sid>87702</if_sid>
+        <match>\.255</match>
+        <description>OPNsense: Silence native rule 87702 for broadcast traffic.</description>
+    </rule>
+
+    <rule id="100903" level="10" frequency="18" timeframe="45">
+        <if_matched_sid>100902</if_matched_sid>
+        <same_source_ip />
+        <description>OPNsense: Multiple blocks from same source (Possible Scan/Flood).</description>
+        <mitre>
+            <id>T1118</id>
+        </mitre>
+        <group>multiple_blocks,</group>
+    </rule>
+    
+    <rule id="100905" level="12">
+        <if_sid>100902</if_sid>
+        <field name="tracker">775411cf3d78ab103739f05d9942e1ce</field> 
+        <description>OPNsense [Q-Feeds]: Confirmed malicious IP blocked!</description>
+        <mitre>
+            <id>T1595</id> 
+        </mitre>
+        <group>threat_intel,</group>
+    </rule>
+
+</group>
