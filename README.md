@@ -638,6 +638,9 @@ This project is provided as-is for educational and professional use.
 
 ---
 
+**Pwned & Developed by [KnnnZzz](https://github.com/KnnnZzz)** 👾
+---
+
 <p align="center">
   <i>Built with 🛡️ Wazuh · 🔍 VirusTotal · 🧬 MISP · 🔥 OPNsense · 📡 MikroTik · 📲 Telegram</i>
 </p>
