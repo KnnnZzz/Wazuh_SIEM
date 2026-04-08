@@ -49,7 +49,7 @@ This repository contains the full configuration set for a **Wazuh SIEM** deploym
 ```
                           ┌─────────────────────────────────┐
                           │       Wazuh Manager             │
-                          │       WAZUH_MANAGER_IP              │
+                          │       WAZUH_MANAGER_IP          │
                           │                                 │
                           │  ┌───────────┐ ┌─────────────┐  │
                           │  │ VirusTotal│ │    MISP     │  │
